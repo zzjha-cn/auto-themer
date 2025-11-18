@@ -18,7 +18,6 @@ export class ThemeManager {
             "Monokai Dimmed",
             "Quiet Light",
             "Red",
-            "Seti",
             "Solarized Dark",
             "Solarized Light",
             "Tomorrow Night Blue",
