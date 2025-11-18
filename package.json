@@ -1,0 +1,144 @@
+{
+  "name": "auto-themer",
+  "displayName": "Auto Themer",
+  "description": "Automatically assign different color themes to VSCode windows for easy distinction",
+  "version": "0.8.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "autoThemer.enable",
+        "title": "Auto Themer: Enable"
+      },
+      {
+        "command": "autoThemer.disable",
+        "title": "Auto Themer: Disable"
+      },
+      {
+        "command": "autoThemer.switchTheme",
+        "title": "Auto Themer: Switch Theme"
+      },
+      {
+        "command": "autoThemer.nextTheme",
+        "title": "Auto Themer: Next Theme"
+      },
+      {
+        "command": "autoThemer.prevTheme",
+        "title": "Auto Themer: Previous Theme"
+      },
+      {
+        "command": "autoThemer.reassignTheme",
+        "title": "Auto Themer: Reassign Theme for Current Window"
+      },
+      {
+        "command": "autoThemer.showThemeMappings",
+        "title": "Auto Themer: Show Theme Mappings"
+      },
+      {
+        "command": "autoThemer.persistCurrentTheme",
+        "title": "Auto Themer: Persist Current Theme for Workspace"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "autoThemer",
+          "title": "Auto Themer",
+          "icon": "$(color-mode)"
+        }
+      ]
+    },
+    "views": {
+      "autoThemer": [
+        {
+          "type": "webview",
+          "id": "autoThemer.view",
+          "name": "Auto Themer"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Auto Themer",
+      "properties": {
+        "autoThemer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable automatic theme switching"
+        },
+        "autoThemer.builtinThemes": {
+          "type": "array",
+          "default": [
+            "Abyss",
+            "Default Light+",
+            "Default Dark+",
+            "Kimbie Dark",
+            "Monokai",
+            "Monokai Dimmed",
+            "Quiet Light",
+            "Red",
+            "Seti",
+            "Solarized Dark",
+            "Solarized Light",
+            "Tomorrow Night Blue"
+          ],
+          "description": "Built-in themes to cycle through"
+        },
+        "autoThemer.switchInterval": {
+          "type": "number",
+          "default": 0,
+          "description": "Auto switch interval in minutes (0 = disabled)"
+        },
+        "autoThemer.enableConflictDetection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable theme conflict detection"
+        },
+        "autoThemer.conflictResolution": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "auto"
+          ],
+          "default": "manual",
+          "description": "How to resolve theme conflicts"
+        },
+        "autoThemer.themeMappingsText": {
+          "type": "string",
+          "default": "",
+          "description": "Workspace→Theme mappings as text; format: /path: Theme; /path2/pro2: Theme2"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "autoThemer.randomTheme",
+        "key": "ctrl+alt+t",
+        "mac": "cmd+alt+t",
+        "when": "editorTextFocus"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.x",
+    "typescript": "^4.4.3",
+    "@vscode/vsce": "^2.15.0"
+  }
+}
