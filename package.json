@@ -6,9 +6,19 @@
   "engines": {
     "vscode": "^1.60.0"
   },
+  "icon": "public/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zzjha-cn/auto-themer.git"
+  },
   "categories": [
     "Themes",
     "Other"
+  ],
+  "keywords": [
+    "Theme",
+    "Auto",
+    "Window"
   ],
   "activationEvents": [
     "onStartupFinished"
