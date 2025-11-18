@@ -6,6 +6,8 @@
 
 Assign and apply color themes per VS Code window/workspace. Supports persisting a workspace→theme mapping by workspace path.
 
+![image](./public/image1.png)
+
 ## Features
 
 - Unique theme assignment: when enabled, each window in a multi-window setup gets a distinct theme
