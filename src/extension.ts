@@ -8,6 +8,7 @@ let windowManager: WindowInstanceManager;
 let themeManager: ThemeManager;
 let autoAssignmentEnabled: boolean = false;
 
+// "onStartupFinished" actives once when Extension Host finish.
 export function activate(context: vscode.ExtensionContext) {
 
     // Initialize managers
@@ -216,7 +217,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Show theme mappings
     async function showThemeMappings(): Promise<void> {
-                const config = vscode.workspace.getConfiguration('autoThemer');
+        const config = vscode.workspace.getConfiguration('autoThemer');
         const text2 = config.get<string>('autoThemer.themeMappingsText' as any, '');
         const mappings = parseMappingsText(text2 || config.get<string>('themeMappingsText', ''));
         const instances = windowManager.getAllInstances();

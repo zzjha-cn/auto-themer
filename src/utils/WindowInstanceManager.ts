@@ -145,6 +145,12 @@ export class WindowInstanceManager {
         // Create lock file for current instance
         this.createLockFile(this.currentInstanceId);
 
+        // initial is the first instance
+        const selfInfo = this.readInstanceInfo(this.currentInstanceId);
+        if (selfInfo) {
+            this.instances.set(this.currentInstanceId, selfInfo);
+        }
+
         await this.scanExistingInstances();
 
         // Cleanup dead instances (no running process)
@@ -270,6 +276,6 @@ export class WindowInstanceManager {
                 delete json['workbench.colorTheme'];
                 fs.writeFileSync(settingsPath, JSON.stringify(json, null, 2));
             }
-        } catch {}
+        } catch { }
     }
 }
