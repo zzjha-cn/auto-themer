@@ -265,7 +265,8 @@ export class WindowInstanceManager {
             if (!workspacePath) return;
             const settingsPath = path.join(workspacePath, '.vscode', 'settings.json');
             if (!fs.existsSync(settingsPath)) return;
-            const raw = fs.readFileSync(settingsPath, 'utf8');
+            let raw = fs.readFileSync(settingsPath, 'utf8');
+            raw = raw.replace(/,(?=\s*[}\]])/g, ''); // trim invalid json data: ",}"
             let json: any;
             try {
                 json = JSON.parse(raw);

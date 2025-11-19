@@ -2,7 +2,7 @@
   "name": "auto-themer",
   "displayName": "Auto Themer",
   "description": "Automatically assign different color themes to VSCode windows for easy distinction",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -19,7 +19,8 @@
   "keywords": [
     "Theme",
     "Auto",
-    "Window"
+    "Window",
+    "Switch"
   ],
   "activationEvents": [
     "onStartupFinished"
