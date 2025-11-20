@@ -56,7 +56,6 @@
     "Kimbie Dark",
     "Tomorrow Night Blue"
   ],
-  "autoThemer.switchInterval": 0,
   "autoThemer.themeMappingsText": "/my/pro-dev: Kimbie Dark; /easy/hc: Kimbie Dark"
 }
 ```

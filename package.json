@@ -2,7 +2,7 @@
   "name": "auto-themer",
   "displayName": "Auto Themer",
   "description": "Automatically assign different color themes to VSCode windows for easy distinction",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -13,7 +13,6 @@
   },
   "publisher": "seanz-hahaha",
   "categories": [
-    "Themes",
     "Other"
   ],
   "keywords": [
@@ -90,25 +89,13 @@
         "autoThemer.builtinThemes": {
           "type": "array",
           "default": [
-            "Abyss",
-            "Default Light+",
-            "Default Dark+",
-            "Kimbie Dark",
-            "Monokai",
-            "Monokai Dimmed",
-            "Quiet Light",
-            "Red",
-            "Seti",
-            "Solarized Dark",
-            "Solarized Light",
-            "Tomorrow Night Blue"
           ],
           "description": "Built-in themes to cycle through"
         },
-        "autoThemer.switchInterval": {
+        "autoThemer.windowsThreshold": {
           "type": "number",
-          "default": 0,
-          "description": "Auto switch interval in minutes (0 = disabled)"
+          "default": 1,
+          "description": "Only active switching when windows count over this threshold"
         },
         "autoThemer.enableConflictDetection": {
           "type": "boolean",

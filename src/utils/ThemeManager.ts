@@ -22,6 +22,8 @@ export class ThemeManager {
             "Solarized Light",
             "Tomorrow Night Blue",
         ];
+
+        // TODO: use config builtinThemes
     }
 
     async getAvailableThemes(): Promise<string[]> {

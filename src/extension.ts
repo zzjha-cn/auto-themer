@@ -7,6 +7,7 @@ import { SimpleWebviewProvider } from './providers/SimpleWebviewProvider';
 let windowManager: WindowInstanceManager;
 let themeManager: ThemeManager;
 let autoAssignmentEnabled: boolean = false;
+let windowsThreshold = 1;
 
 // "onStartupFinished" actives once when Extension Host finish.
 export function activate(context: vscode.ExtensionContext) {
@@ -85,11 +86,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize window management
     const config = vscode.workspace.getConfiguration('autoThemer');
     autoAssignmentEnabled = config.get('enabled', true);
+    windowsThreshold = config.get("windowsThreshold", 1)
 
     if (autoAssignmentEnabled) {
         setTimeout(async () => {
             await windowManager.initialize();
-            await applyWorkspaceMappingIfExists();
             await performAutoThemeAssignment();
         }, 2000);
     }
@@ -110,7 +111,6 @@ export function activate(context: vscode.ExtensionContext) {
                 for (const removed of e.removed) {
                     windowManager.resetWorkspaceThemeByPath(removed.uri.fsPath);
                 }
-                await applyWorkspaceMappingIfExists();
                 await performAutoThemeAssignment();
             }
         })
@@ -133,18 +133,25 @@ export function activate(context: vscode.ExtensionContext) {
         try {
             const hasWorkspace = (vscode.workspace.workspaceFolders?.length || 0) > 0;
             if (!hasWorkspace) return;
+
+            const workspaceMapped = await applyWorkspaceMappingIfExists();
+            if (workspaceMapped) {
+                // TODO: notification?
+                return
+            }
+
             const instanceCount = windowManager.getInstanceCount();
             const currentInstanceId = windowManager.getCurrentInstanceId();
 
-            if (instanceCount > 1) {
+            if (instanceCount > windowsThreshold) {
                 // Multi-window: assign unique theme
                 const assignedTheme = await themeManager.assignUniqueTheme(currentInstanceId, instanceCount);
                 await themeManager.showThemeNotification(assignedTheme);
                 console.log(`Auto-assigned theme: ${assignedTheme} to instance: ${currentInstanceId}`);
             } else {
-                // Single-window: use default or user preference
+                // windowsThreshold-window: use default or user preference
                 const currentTheme = await themeManager.getCurrentTheme();
-                console.log(`Single window mode, current theme: ${currentTheme}`);
+                console.log(`windowsThreshold window mode, current theme: ${currentTheme}`);
             }
         } catch (error) {
             console.error('Failed to perform auto theme assignment:', error);
@@ -190,15 +197,22 @@ export function activate(context: vscode.ExtensionContext) {
         return result;
     }
 
+    async function applyWorkspaceMappingIfExists(): Promise<boolean> {
+        const mapped = await getWorkspaceMappingTheme();
+        if (mapped) {
+            if (!(await themeManager.getCurrentTheme() === mapped)) {
+                await themeManager.switchTheme(mapped);
+            }
+            return true
+        }
+        return false
+    }
 
-
-    async function applyWorkspaceMappingIfExists(): Promise<void> {
+    async function getWorkspaceMappingTheme(): Promise<string | undefined> {
         const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         if (!workspacePath) return;
         const mapped = await getWorkspaceThemeMapping(workspacePath);
-        if (mapped) {
-            await themeManager.switchTheme(mapped);
-        }
+        return mapped;
     }
 
     // Persist current theme to workspace mapping
@@ -238,32 +252,32 @@ export function activate(context: vscode.ExtensionContext) {
             const mappedTheme = mappings[inst.workspacePath];
             let status: 'in_sync' | 'conflict' | 'unmapped' = 'unmapped';
             if (mappedTheme) {
-                status = mappedTheme === inst.theme ? 'in_sync' : 'conflict';
+                status = mappedTheme === inst.curTheme ? 'in_sync' : 'conflict';
             }
             rows.push({
                 label: path.basename(inst.workspacePath || 'global'),
-                description: `Current: ${inst.theme || 'Unknown'} | Mapped: ${mappedTheme || 'None'}`,
+                description: `Current: ${inst.curTheme || 'Unknown'} | Mapped: ${mappedTheme || 'None'}`,
                 detail: `Path: ${inst.workspacePath || 'global'} | Status: ${status}`,
                 workspacePath: inst.workspacePath,
-                currentTheme: inst.theme,
+                currentTheme: inst.curTheme,
                 mappedTheme,
                 status
             });
         }
 
         // Mapped workspaces not currently open
-        const knownPaths = new Set(instances.map(i => i.workspacePath));
-        for (const [wsPath, theme] of Object.entries(mappings)) {
-            if (knownPaths.has(wsPath)) continue;
-            rows.push({
-                label: path.basename(wsPath || 'Unknown'),
-                description: `Mapped: ${theme}`,
-                detail: `Path: ${wsPath || 'Unknown'} | Status: unmapped`,
-                workspacePath: wsPath,
-                mappedTheme: theme,
-                status: 'unmapped'
-            });
-        }
+        // const knownPaths = new Set(instances.map(i => i.workspacePath));
+        // for (const [wsPath, theme] of Object.entries(mappings)) {
+        //     if (knownPaths.has(wsPath)) continue;
+        //     rows.push({
+        //         label: path.basename(wsPath || 'Unknown'),
+        //         description: `Mapped: ${theme}`,
+        //         detail: `Path: ${wsPath || 'Unknown'} | Status: unmapped`,
+        //         workspacePath: wsPath,
+        //         mappedTheme: theme,
+        //         status: 'unmapped'
+        //     });
+        // }
 
         if (rows.length === 0) {
             vscode.window.showInformationMessage('No instances or mappings to display.');
@@ -341,29 +355,33 @@ export function activate(context: vscode.ExtensionContext) {
         if (!config.get('enabled', true)) {
             return;
         }
+        const currentTheme = await themeManager.getCurrentTheme();
+        if ((await getWorkspaceMappingTheme()) === currentTheme) {
+            return;
+        }
 
         const instanceCount = windowManager.getInstanceCount();
-        if (instanceCount > 1) {
+        if (instanceCount > windowsThreshold) {
             // Check if current theme is used by other instances
             const instances = windowManager.getAllInstances();
-            const currentTheme = await themeManager.getCurrentTheme();
             const currentInstanceId = windowManager.getCurrentInstanceId();
 
-            // Check for other instances with the same theme
             const duplicateThemeUsers = instances.filter(instance =>
-                instance.theme === currentTheme && instance.id !== currentInstanceId
+                instance.curTheme === currentTheme && instance.id !== currentInstanceId
             );
 
             if (duplicateThemeUsers.length > 0) {
                 console.log(`Theme conflict detected: ${currentTheme} used by ${duplicateThemeUsers.length} other instances`);
 
-                // Auto assign on first launch only; later only log conflicts
                 const hasAutoAssigned = await context.globalState.get('hasAutoAssigned', false);
                 if (!hasAutoAssigned) {
                     await performAutoThemeAssignment();
                     await context.globalState.update('hasAutoAssigned', true);
                 } else {
                     // Show conflict warning without auto reassign
+                    const warning = context.globalState.get('conflictWarning', true);// Suspend
+                    if (warning) { return }
+
                     vscode.window.showWarningMessage(
                         `Theme conflict detected: "${currentTheme}" is used by ${duplicateThemeUsers.length} other VSCode window(s).`,
                         'Reassign Theme',
@@ -376,8 +394,8 @@ export function activate(context: vscode.ExtensionContext) {
                         }
                     });
 
-                    // Notify WebView of conflict
                     provider.notifyConflictDetected();
+                    await context.globalState.update('conflictWarning', true);
                 }
             }
         }

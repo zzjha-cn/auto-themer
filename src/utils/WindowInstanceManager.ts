@@ -6,7 +6,7 @@ import * as path from 'path';
 interface WindowInstance {
     id: string;
     pid: number;
-    theme: string;
+    curTheme: string;
     workspacePath: string;
     lastActive: number;
 }
@@ -52,10 +52,12 @@ export class WindowInstanceManager {
             const pid = process.pid;
             fs.writeFileSync(lockPath, pid.toString(), { flag: 'wx' });
 
+            const config = vscode.workspace.getConfiguration('workbench');
+            const curTheme = config.get<string>('colorTheme', '');
             const instanceInfo: WindowInstance = {
                 id: instanceId,
                 pid: pid,
-                theme: '',
+                curTheme: curTheme,
                 workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
                 lastActive: Date.now()
             };
@@ -130,7 +132,7 @@ export class WindowInstanceManager {
         try {
             const instanceInfo = this.readInstanceInfo(instanceId);
             if (instanceInfo) {
-                instanceInfo.theme = theme;
+                instanceInfo.curTheme = theme;
                 instanceInfo.lastActive = Date.now();
                 fs.writeFileSync(infoPath, JSON.stringify(instanceInfo));
             }
@@ -219,7 +221,7 @@ export class WindowInstanceManager {
         const instanceInfo = this.readInstanceInfo(this.currentInstanceId);
         if (instanceInfo) {
             instanceInfo.lastActive = Date.now();
-            this.updateInstanceTheme(this.currentInstanceId, instanceInfo.theme);
+            this.updateInstanceTheme(this.currentInstanceId, instanceInfo.curTheme);
         }
     }
 
