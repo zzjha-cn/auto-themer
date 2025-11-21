@@ -62,6 +62,15 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                 case 'showMappings':
                     await vscode.commands.executeCommand('autoThemer.showThemeMappings');
                     break;
+                case 'pickStatusBarScheme':
+                    await vscode.commands.executeCommand('autoThemer.pickStatusBarScheme');
+                    break;
+                case 'persistStatusBarLabel':
+                    await vscode.commands.executeCommand('autoThemer.persistStatusBarLabel');
+                    break;
+                case 'nextStatusBarScheme':
+                    await vscode.commands.executeCommand('autoThemer.nextStatusBarScheme');
+                    break;
                 case 'getCurrentTheme':
                     const currentTheme = await this.themeManager.getCurrentTheme();
                     webviewView.webview.postMessage({
@@ -180,6 +189,14 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                         <button id="show-mappings">Show Mappings</button>
                     </div>
 
+                    <div class="divider"></div>
+
+                    <div class="button-group">
+                        <button id="pick-statusbar-scheme">Pick Status Bar Scheme</button>
+                        <button id="persist-statusbar-label">Persist Status Bar Label</button>
+                        <button id="next-statusbar-scheme">Next Status Bar Scheme</button>
+                    </div>
+
                     <div id="conflict-warning" class="conflict-warning">
                         ⚠️ Theme conflict detected! Click "Reassign Theme" to fix.
                     </div>
@@ -228,6 +245,18 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
 
                     document.getElementById('show-mappings').addEventListener('click', () => {
                         vscode.postMessage({ type: 'showMappings' });
+                    });
+
+                    document.getElementById('pick-statusbar-scheme').addEventListener('click', () => {
+                        vscode.postMessage({ type: 'pickStatusBarScheme' });
+                    });
+
+                    document.getElementById('persist-statusbar-label').addEventListener('click', () => {
+                        vscode.postMessage({ type: 'persistStatusBarLabel' });
+                    });
+
+                    document.getElementById('next-statusbar-scheme').addEventListener('click', () => {
+                        vscode.postMessage({ type: 'nextStatusBarScheme' });
                     });
                 </script>
             </body>

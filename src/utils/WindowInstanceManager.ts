@@ -96,6 +96,7 @@ export class WindowInstanceManager {
         this.instances.delete(instanceId);
         if (info && info.workspacePath) {
             this.resetWorkspaceThemeByPath(info.workspacePath);
+            this.resetWorkspaceUIColorsByPath(info.workspacePath);
         }
         const lockPath = this.getLockFilePath(instanceId);
         const infoPath = this.getInstanceInfoPath(instanceId);
@@ -278,6 +279,36 @@ export class WindowInstanceManager {
             if (json && Object.prototype.hasOwnProperty.call(json, 'workbench.colorTheme')) {
                 delete json['workbench.colorTheme'];
                 fs.writeFileSync(settingsPath, JSON.stringify(json, null, 2));
+            }
+        } catch { }
+    }
+
+    public resetWorkspaceUIColorsByPath(workspacePath: string): void {
+        try {
+            if (!workspacePath) return;
+            const settingsPath = path.join(workspacePath, '.vscode', 'settings.json');
+            if (!fs.existsSync(settingsPath)) return;
+            let raw = fs.readFileSync(settingsPath, 'utf8');
+            raw = raw.replace(/,(?=\s*[}\]])/g, '');
+            let json: any;
+            try {
+                json = JSON.parse(raw);
+            } catch {
+                return;
+            }
+            const key = 'workbench.colorCustomizations';
+            if (json && Object.prototype.hasOwnProperty.call(json, key)) {
+                const cc = json[key];
+                if (cc && typeof cc === 'object') {
+                    delete cc['statusBar.background'];
+                    delete cc['statusBar.foreground'];
+                    if (Object.keys(cc).length === 0) {
+                        delete json[key];
+                    } else {
+                        json[key] = cc;
+                    }
+                    fs.writeFileSync(settingsPath, JSON.stringify(json, null, 2));
+                }
             }
         } catch { }
     }

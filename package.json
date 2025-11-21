@@ -40,14 +40,6 @@
         "title": "Auto Themer: Switch Theme"
       },
       {
-        "command": "autoThemer.nextTheme",
-        "title": "Auto Themer: Next Theme"
-      },
-      {
-        "command": "autoThemer.prevTheme",
-        "title": "Auto Themer: Previous Theme"
-      },
-      {
         "command": "autoThemer.reassignTheme",
         "title": "Auto Themer: Reassign Theme for Current Window"
       },
@@ -58,6 +50,18 @@
       {
         "command": "autoThemer.persistCurrentTheme",
         "title": "Auto Themer: Persist Current Theme for Workspace"
+      },
+      {
+        "command": "autoThemer.pickStatusBarScheme",
+        "title": "Auto Themer: Pick Status Bar Scheme"
+      },
+      {
+        "command": "autoThemer.persistStatusBarLabel",
+        "title": "Auto Themer: Persist Status Bar Label"
+      },
+      {
+        "command": "autoThemer.nextStatusBarScheme",
+        "title": "Auto Themer: Next Status Bar Scheme"
       }
     ],
     "viewsContainers": {
@@ -88,8 +92,7 @@
         },
         "autoThemer.builtinThemes": {
           "type": "array",
-          "default": [
-          ],
+          "default": [],
           "description": "Built-in themes to cycle through"
         },
         "autoThemer.windowsThreshold": {
@@ -105,16 +108,21 @@
         "autoThemer.conflictResolution": {
           "type": "string",
           "enum": [
-            "manual",
-            "auto"
+            "theme",
+            "statusBar"
           ],
-          "default": "manual",
-          "description": "How to resolve theme conflicts"
+          "default": "theme",
+          "description": "How to resolve theme conflicts, distinct by theme or status bar"
         },
         "autoThemer.themeMappingsText": {
           "type": "string",
           "default": "",
           "description": "Workspace→Theme mappings as text; format: /path: Theme; /path2/pro2: Theme2"
+        },
+        "autoThemer.statusBarMappingsText": {
+          "type": "string",
+          "default": "",
+          "description": "Workspace→Status bar scheme as text; format: /path: SchemeName"
         }
       }
     },

@@ -2,10 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { WindowInstanceManager } from './utils/WindowInstanceManager';
 import { ThemeManager } from './utils/ThemeManager';
+import { StatusBarManager } from './utils/StatusBarManager';
 import { SimpleWebviewProvider } from './providers/SimpleWebviewProvider';
 
 let windowManager: WindowInstanceManager;
 let themeManager: ThemeManager;
+let statusBarManager: StatusBarManager;
+let statusItem: vscode.StatusBarItem;
 let autoAssignmentEnabled: boolean = false;
 let windowsThreshold = 1;
 
@@ -15,6 +18,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize managers
     windowManager = new WindowInstanceManager(context);
     themeManager = new ThemeManager(context);
+    statusBarManager = new StatusBarManager(context);
+    statusItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
+    statusItem.show();
 
     const provider = new SimpleWebviewProvider(context.extensionUri, themeManager);
 
@@ -83,6 +89,49 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('autoThemer.pickStatusBarScheme', async () => {
+            const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspacePath) {
+                vscode.window.showWarningMessage('No workspace open to pick status bar scheme.');
+                return;
+            }
+            const schemes = statusBarManager.getSchemeNames();
+            const selected = await vscode.window.showQuickPick(schemes, { placeHolder: 'Pick a status bar scheme' });
+            if (!selected) return;
+            await statusBarManager.applySchemeToWorkspace(workspacePath, selected);
+            await updateStatusBarLabelForWorkspace(workspacePath);
+            // vscode.window.showInformationMessage(`Applied status bar scheme: ${selected}`);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('autoThemer.persistStatusBarLabel', async () => {
+            const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspacePath) {
+                vscode.window.showWarningMessage('No workspace open to persist status bar label.');
+                return;
+            }
+            const input = await vscode.window.showInputBox({ placeHolder: 'Enter status bar label for this workspace' });
+            if (!input) return;
+            await saveWorkspaceStatusBarLabel(workspacePath, input);
+            await updateStatusBarLabelForWorkspace(workspacePath);
+            vscode.window.showInformationMessage(`Persisted status bar label: ${input}`);
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('autoThemer.nextStatusBarScheme', async () => {
+            const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+            if (!workspacePath) {
+                vscode.window.showWarningMessage('No workspace open to cycle status bar scheme.');
+                return;
+            }
+            const name = await statusBarManager.applyNextStatusBarScheme(workspacePath);
+            await updateStatusBarLabelForWorkspace(workspacePath);
+        })
+    );
+
     // Initialize window management
     const config = vscode.workspace.getConfiguration('autoThemer');
     autoAssignmentEnabled = config.get('enabled', true);
@@ -110,6 +159,7 @@ export function activate(context: vscode.ExtensionContext) {
             if (autoAssignmentEnabled) {
                 for (const removed of e.removed) {
                     windowManager.resetWorkspaceThemeByPath(removed.uri.fsPath);
+                    windowManager.resetWorkspaceUIColorsByPath(removed.uri.fsPath);
                 }
                 await performAutoThemeAssignment();
             }
@@ -134,7 +184,7 @@ export function activate(context: vscode.ExtensionContext) {
             const hasWorkspace = (vscode.workspace.workspaceFolders?.length || 0) > 0;
             if (!hasWorkspace) return;
 
-            const workspaceMapped = await applyWorkspaceMappingIfExists();
+            const workspaceMapped = await applyWorkspacePreferencesIfExists();
             if (workspaceMapped) {
                 // TODO: notification?
                 return
@@ -142,12 +192,22 @@ export function activate(context: vscode.ExtensionContext) {
 
             const instanceCount = windowManager.getInstanceCount();
             const currentInstanceId = windowManager.getCurrentInstanceId();
+            const cr = vscode.workspace.getConfiguration('autoThemer').get<'theme' | 'statusBar'>('conflictResolution', 'theme');
 
             if (instanceCount > windowsThreshold) {
-                // Multi-window: assign unique theme
-                const assignedTheme = await themeManager.assignUniqueTheme(currentInstanceId, instanceCount);
-                await themeManager.showThemeNotification(assignedTheme);
-                console.log(`Auto-assigned theme: ${assignedTheme} to instance: ${currentInstanceId}`);
+                if (cr === 'theme') {
+                    const assignedTheme = await themeManager.assignUniqueTheme(currentInstanceId, instanceCount);
+                    windowManager.syncWindowStates()
+                    await themeManager.showThemeNotification(assignedTheme);
+                    console.log(`Auto-assigned theme: ${assignedTheme} to instance: ${currentInstanceId}`);
+                } else {
+                    const schemes = statusBarManager.getSchemeNames();
+                    const idx = Math.abs(hashString(currentInstanceId)) % schemes.length;
+                    const scheme = schemes[idx];
+                    const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+                    await statusBarManager.applySchemeToWorkspace(wsPath, scheme);
+                    await updateStatusBarLabelForWorkspace(wsPath);
+                }
             } else {
                 // windowsThreshold-window: use default or user preference
                 const currentTheme = await themeManager.getCurrentTheme();
@@ -175,6 +235,38 @@ export function activate(context: vscode.ExtensionContext) {
         return mappings[workspacePath];
     }
 
+    // async function saveWorkspaceStatusBarScheme(workspacePath: string, scheme: string): Promise<void> {
+    //     const config = vscode.workspace.getConfiguration('autoThemer');
+    //     const text = config.get<string>('statusBarSchemeText', '');
+    //     const mappings = parseMappingsText(text);
+    //     mappings[workspacePath] = scheme;
+    //     const newText = serializeMappingsToText(mappings);
+    //     await config.update('statusBarSchemeText', newText, vscode.ConfigurationTarget.Global);
+    // }
+
+    // async function getWorkspaceStatusBarScheme(workspacePath: string): Promise<string | undefined> {
+    //     const config = vscode.workspace.getConfiguration('autoThemer');
+    //     const text = config.get<string>('statusBarSchemeText', '');
+    //     const mappings = parseMappingsText(text);
+    //     return mappings[workspacePath];
+    // }
+
+    async function saveWorkspaceStatusBarLabel(workspacePath: string, label: string): Promise<void> {
+        const config = vscode.workspace.getConfiguration('autoThemer');
+        const text = config.get<string>('statusBarMappingsText', '');
+        const mappings = parseMappingsText(text);
+        mappings[workspacePath] = label;
+        const newText = serializeMappingsToText(mappings);
+        await config.update('statusBarMappingsText', newText, vscode.ConfigurationTarget.Global);
+    }
+
+    async function getWorkspaceStatusBarLabel(workspacePath: string): Promise<string | undefined> {
+        const config = vscode.workspace.getConfiguration('autoThemer');
+        const text = config.get<string>('statusBarMappingsText', '');
+        const mappings = parseMappingsText(text);
+        return mappings[workspacePath];
+    }
+
     function serializeMappingsToText(m: Record<string, string>): string {
         const entries = Object.entries(m).sort((a, b) => a[0].localeCompare(b[0]));
         return entries.map(([k, v]) => `${k}: ${v}`).join('; ');
@@ -197,15 +289,25 @@ export function activate(context: vscode.ExtensionContext) {
         return result;
     }
 
-    async function applyWorkspaceMappingIfExists(): Promise<boolean> {
-        const mapped = await getWorkspaceMappingTheme();
-        if (mapped) {
-            if (!(await themeManager.getCurrentTheme() === mapped)) {
-                await themeManager.switchTheme(mapped);
+    async function applyWorkspacePreferencesIfExists(): Promise<boolean> {
+        const cr = vscode.workspace.getConfiguration('autoThemer').get<'theme' | 'statusBar'>('conflictResolution', 'theme');
+        const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        if (!wsPath) return false;
+        if (cr === 'theme') {
+            const mapped = await getWorkspaceThemeMapping(wsPath);
+            if (mapped) {
+                if (!(await themeManager.getCurrentTheme() === mapped)) {
+                    await themeManager.switchTheme(mapped);
+                }
+                return true;
             }
-            return true
+            return false;
+        } else {
+            return false;
+            // await statusBarManager.applyNextStatusBarScheme(wsPath);
+            // await updateStatusBarLabelForWorkspace(wsPath);
+            // return true;
         }
-        return false
     }
 
     async function getWorkspaceMappingTheme(): Promise<string | undefined> {
@@ -355,8 +457,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (!config.get('enabled', true)) {
             return;
         }
+        const cr = config.get<'theme' | 'statusBar'>('conflictResolution', 'theme');
         const currentTheme = await themeManager.getCurrentTheme();
-        if ((await getWorkspaceMappingTheme()) === currentTheme) {
+        if (cr === 'theme' && (await getWorkspaceMappingTheme()) === currentTheme) {
             return;
         }
 
@@ -382,23 +485,44 @@ export function activate(context: vscode.ExtensionContext) {
                     const warning = context.globalState.get('conflictWarning', true);// Suspend
                     if (warning) { return }
 
-                    vscode.window.showWarningMessage(
-                        `Theme conflict detected: "${currentTheme}" is used by ${duplicateThemeUsers.length} other VSCode window(s).`,
-                        'Reassign Theme',
-                        'Show Mappings'
-                    ).then(selection => {
-                        if (selection === 'Reassign Theme') {
-                            vscode.commands.executeCommand('autoThemer.reassignTheme');
-                        } else if (selection === 'Show Mappings') {
-                            vscode.commands.executeCommand('autoThemer.showThemeMappings');
-                        }
-                    });
+                    if (cr === 'theme') {
+                        vscode.window.showWarningMessage(
+                            `Theme conflict detected: "${currentTheme}" is used by ${duplicateThemeUsers.length} other VSCode window(s).`,
+                            'Reassign Theme',
+                            'Show Mappings'
+                        ).then(selection => {
+                            if (selection === 'Reassign Theme') {
+                                vscode.commands.executeCommand('autoThemer.reassignTheme');
+                            } else if (selection === 'Show Mappings') {
+                                vscode.commands.executeCommand('autoThemer.showThemeMappings');
+                            }
+                        });
+                    } else {
+
+                    }
 
                     provider.notifyConflictDetected();
                     await context.globalState.update('conflictWarning', true);
                 }
             }
         }
+    }
+
+    async function updateStatusBarLabelForWorkspace(workspacePath: string): Promise<void> {
+        const label = await getWorkspaceStatusBarLabel(workspacePath);
+        statusItem.text = label ? `$(color-mode) ${label}` : `$(color-mode) ${path.basename(workspacePath)}`;
+        statusItem.tooltip = workspacePath;
+        statusItem.show();
+    }
+
+    function hashString(s: string): number {
+        let h = 0;
+        for (let i = 0; i < s.length; i++) {
+            const c = s.charCodeAt(i);
+            h = ((h << 5) - h) + c;
+            h |= 0;
+        }
+        return h;
     }
 }
 
