@@ -89,6 +89,15 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                     type: 'currentTheme',
                     theme: currentTheme
                 });
+
+                // get statusBar scheme from setting.json
+                const cfg = vscode.workspace.getConfiguration('workbench');
+                const custom = cfg.get<Record<string, any>>('colorCustomizations', {}) || {};
+                const curSchemeName = custom['statusBar.scheme'] || "-";
+                this._view.webview.postMessage({
+                    type: 'currentBarScheme',
+                    bar: curSchemeName
+                });
             }
         }, 3000);
 
@@ -175,6 +184,10 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                         <div>Current Theme:</div>
                         <div id="current-theme" style="font-weight: bold;">Loading...</div>
                     </div>
+                    <div class="current-theme">
+                        <div>Current Bar:</div>
+                        <div id="current-bar-scheme" style="font-weight: bold;"> - </div>
+                    </div>
 
                     <div class="button-group">
                         <button id="select-theme">Select Theme</button>
@@ -216,6 +229,9 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                         switch (message.type) {
                             case 'currentTheme':
                                 document.getElementById('current-theme').textContent = message.theme;
+                                break;
+                            case 'currentBarScheme':
+                                document.getElementById('current-bar-scheme').textContent = message.bar;
                                 break;
                             case 'conflictDetected':
                                 document.getElementById('conflict-warning').style.display = 'block';

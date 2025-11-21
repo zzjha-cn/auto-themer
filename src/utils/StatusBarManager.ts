@@ -71,6 +71,7 @@ export class StatusBarManager {
         const scheme = (statusBarColorList as any)[schemeName] as Record<string, string> | undefined;
         if (!scheme) return;
         let statusBarCfg = {
+            'statusBar.scheme': schemeName,
             'statusBar.background': scheme['statusBar.background'],
             'statusBar.foreground': scheme['statusBar.foreground'],
         };

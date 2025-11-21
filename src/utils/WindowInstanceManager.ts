@@ -309,6 +309,7 @@ export class WindowInstanceManager {
             if (json && Object.prototype.hasOwnProperty.call(json, key)) {
                 const cc = json[key];
                 if (cc && typeof cc === 'object') {
+                    delete cc['statusBar.scheme'];
                     delete cc['statusBar.background'];
                     delete cc['statusBar.foreground'];
                     if (Object.keys(cc).length === 0) {
