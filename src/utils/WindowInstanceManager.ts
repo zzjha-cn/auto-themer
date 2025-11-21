@@ -136,9 +136,18 @@ export class WindowInstanceManager {
                 instanceInfo.curTheme = theme;
                 instanceInfo.lastActive = Date.now();
                 fs.writeFileSync(infoPath, JSON.stringify(instanceInfo));
+                this.instances.set(instanceId, instanceInfo);
             }
         } catch (error) {
             console.error(`Failed to update instance theme: ${error}`);
+        }
+    }
+
+    public updateCurrentInstanceTheme(theme: string): void {
+        try {
+            this.updateInstanceTheme(this.currentInstanceId, theme);
+        } catch (error) {
+            console.error(`Failed to update current instance theme: ${error}`);
         }
     }
 

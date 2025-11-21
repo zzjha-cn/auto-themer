@@ -199,6 +199,7 @@ export function activate(context: vscode.ExtensionContext) {
                     const assignedTheme = await themeManager.assignUniqueTheme(currentInstanceId, instanceCount);
                     windowManager.syncWindowStates()
                     await themeManager.showThemeNotification(assignedTheme);
+                    windowManager.updateCurrentInstanceTheme(assignedTheme);
                     console.log(`Auto-assigned theme: ${assignedTheme} to instance: ${currentInstanceId}`);
                 } else {
                     const schemes = statusBarManager.getSchemeNames();
@@ -234,22 +235,6 @@ export function activate(context: vscode.ExtensionContext) {
         const mappings = parseMappingsText(text);
         return mappings[workspacePath];
     }
-
-    // async function saveWorkspaceStatusBarScheme(workspacePath: string, scheme: string): Promise<void> {
-    //     const config = vscode.workspace.getConfiguration('autoThemer');
-    //     const text = config.get<string>('statusBarSchemeText', '');
-    //     const mappings = parseMappingsText(text);
-    //     mappings[workspacePath] = scheme;
-    //     const newText = serializeMappingsToText(mappings);
-    //     await config.update('statusBarSchemeText', newText, vscode.ConfigurationTarget.Global);
-    // }
-
-    // async function getWorkspaceStatusBarScheme(workspacePath: string): Promise<string | undefined> {
-    //     const config = vscode.workspace.getConfiguration('autoThemer');
-    //     const text = config.get<string>('statusBarSchemeText', '');
-    //     const mappings = parseMappingsText(text);
-    //     return mappings[workspacePath];
-    // }
 
     async function saveWorkspaceStatusBarLabel(workspacePath: string, label: string): Promise<void> {
         const config = vscode.workspace.getConfiguration('autoThemer');

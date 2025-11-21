@@ -4,40 +4,50 @@
 
 # Auto Themer
 
-Assign and apply color themes per VS Code window/workspace. Supports persisting a workspace→theme mapping by workspace path.
+Assign and apply theme-based or status-bar-based distinction per VS Code window/workspace. Supports persisting mappings by workspace path.
 
-![image](./public/image1.png)
+- (autoThemer.conflictResolution=theme):
+
+  ![image](./public/image1.png)
+
+- (autoThemer.conflictResolution=statusBar):
+
+  ![image](./public/image2.png)
 
 ## Features
 
-- Unique theme assignment: when enabled, each window in a multi-window setup gets a distinct theme
-- Conflict detection and prompts: alerts when multiple windows use the same theme
-- Workspace mappings: define mappings using the `autoThemer.themeMappingsText` setting
-- Sidebar UI: quick theme selection, persist current theme, view and edit mappings
-
-## How It Works
-
-- Multi-window coordination: all VS Code windows share a global storage location (`context.globalStorageUri/fsPath/instances`) to track active instances
-- Theme application: writes `workbench.colorTheme` in `.vscode/settings.json` inside the workspace; on window/workspace close, the value is removed to avoid carryover
-
-Flow:
-1. Delayed initialization on startup, scan and track active windows
-2. If a workspace is open and a mapping exists, apply the mapped theme (highest priority)
-3. If no mapping and multiple windows are detected, assign a unique theme and notify
-4. Periodically check for theme conflicts and prompt via sidebar/notifications
-5. On window or workspace close, reset `workbench.colorTheme` in `.vscode/settings.json` so temporary settings do not persist
+- Distinguish windows by theme or status bar: in multi-window scenarios, automatically assigns a distinct theme or a distinct status bar color+label per window
+- Persistent workspace mappings: define "workspace path → theme" via `autoThemer.themeMappingsText`; define "workspace path → status bar label" via `autoThemer.statusBarMappingsText`
+- Simple sidebar: quick theme selection, persist current theme, view and edit mappings, pick status bar scheme, persist status bar label, cycle next status bar scheme
 
 ## Usage
 
-- Commands:
-  - `Auto Themer: Enable`
-  - `Auto Themer: Disable`
-  - `Auto Themer: Switch Theme`
-  - `Auto Themer: Reassign Theme for Current Window`
-  - `Auto Themer: Persist Current Theme for Workspace`
-  - `Auto Themer: Show Theme Mappings`
-- Sidebar: pick theme, reassign theme, persist current theme, manage mappings
-- Keybinding: `Ctrl+Alt+T` (Mac: `Cmd+Alt+T`) for fast theme actions depending on your configuration
+- In settings, configure `autoThemer.windowsThreshold`; auto assignment only runs when the number of open windows is greater than this threshold
+- Set `autoThemer.conflictResolution` to `theme` or `statusBar` to choose your distinction strategy
+- Use the sidebar panel for common actions: switch theme, pick status bar scheme, persist current theme mapping, persist status bar label mapping
+- When a workspace opens in a new window, the extension applies the mapped theme or status bar settings into `.vscode/settings.json`; when switching workspaces or closing the window, it resets `workbench.colorTheme` to avoid carryover
+
+### Sidebar Actions
+- Select Theme: choose the current window's theme
+- Random Theme: assign a random theme to the current window
+- Reassign Theme: reassign a unique theme to the current window
+- Persist Theme: persist the current window's theme mapping
+- Show Mappings: view workspace ↔ theme mappings
+- Pick Status Bar Scheme: choose the bottom status bar color scheme (built-in list)
+- Persist Status Bar Label: persist a label mapping for the bottom status bar
+- Next Status Bar Scheme: cycle to the next built-in status bar scheme
+
+## How It Works
+
+- Multi-window instance tracking: all VS Code windows coordinate using a shared global storage directory under `context.globalStorageUri.fsPath/instances` (macOS example: `~/Library/Application Support/Code/User/globalStorage`)
+- Theme application: writes `workbench.colorTheme` in the workspace's `.vscode/settings.json`; the value is removed when the window/workspace closes
+
+Flow:
+1. Delayed initialization on startup; scan and track active window instances
+2. If a workspace is open and a persisted mapping exists, apply the mapped theme (highest priority)
+3. If no mapping and multiple windows are detected, assign a unique theme or status bar scheme
+4. Periodically check for theme conflicts and inform via sidebar/notifications
+5. On window close or workspace removal, reset the workspace `.vscode/settings.json` `workbench.colorTheme` to avoid residual temporary settings
 
 ## Configuration
 
@@ -46,31 +56,23 @@ Configure in VS Code settings:
 ```json
 {
   "autoThemer.enabled": true,
-  "autoThemer.builtinThemes": [
-    "Abyss",
-    "Default Light+",
-    "Default Dark+",
-    "Kimbie Dark",
-    "Monokai",
-    "Monokai Dimmed",
-    "Quiet Light",
-    "Red",
-    "Solarized Dark",
-    "Solarized Light",
-    "Tomorrow Night Blue"
-  ],
-  "autoThemer.themeMappingsText": "/my/pro-dev: Kimbie Dark; /easy/hc: Kimbie Dark"
+  "autoThemer.conflictResolution": "theme",
+  "autoThemer.windowsThreshold": 2,
+  "autoThemer.builtinThemes": [],
+  "autoThemer.themeMappingsText": "/my/pro-dev: Kimbie Dark; /easy/hc: Kimbie Dark",
+  "autoThemer.statusBarMappingsText": "/my/pro-dev: Custom Label; /easy/hc: Custom Project"
 }
 ```
 
 Notes:
-- `themeMappingsText` is a semicolon-separated `path: Theme` string. The extension parses this text in memory and uses it as the workspace→theme mapping.
+- `themeMappingsText` uses a semicolon-separated `path: Theme` string; parsed in-memory as the workspace → theme mapping
+- `statusBarMappingsText` uses a semicolon-separated `path: Label` string; parsed in-memory as the workspace → status bar label mapping
 
 ## Development
 
-- `npm install`
-- `npm run compile`
-- Press F5 in VS Code to launch the Extension Development Host
+1. `npm install`
+2. `npm run compile`
+3. Press F5 in VS Code to launch the Extension Development Host
 
 ## License
 
