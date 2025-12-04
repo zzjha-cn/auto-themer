@@ -46,7 +46,7 @@ Flow:
 1. Delayed initialization on startup; scan and track active window instances
 2. If a workspace is open and a persisted mapping exists, apply the mapped theme (highest priority)
 3. If no mapping and multiple windows are detected, assign a unique theme or status bar scheme
-4. Periodically check for theme conflicts and inform via sidebar/notifications
+4. Event-driven detection of theme conflicts, with real-time notifications in the sidebar notifications
 5. On window close or workspace removal, reset the workspace `.vscode/settings.json` `workbench.colorTheme` to avoid residual temporary settings
 
 ## Configuration

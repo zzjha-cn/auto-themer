@@ -15,11 +15,27 @@ export class WindowInstanceManager {
     private instances: Map<string, WindowInstance> = new Map();
     private lockDir: string;
     private currentInstanceId: string;
+    private _onDidChangeInstances = new vscode.EventEmitter<void>();
+    public readonly onDidChangeInstances = this._onDidChangeInstances.event;
+    private dirWatcher: fs.FSWatcher | undefined;
 
     constructor(private context: vscode.ExtensionContext) {
         this.lockDir = path.join(this.context.globalStorageUri.fsPath, 'instances');
         this.ensureLockDirectory();
         this.currentInstanceId = this.generateInstanceId();
+        this.watchLockDir();
+    }
+
+    private watchLockDir(): void {
+        try {
+            this.dirWatcher = fs.watch(this.lockDir, (eventType, filename) => {
+                if (filename && (filename.endsWith('.lock') || filename.endsWith('.json'))) {
+                    this._onDidChangeInstances.fire();
+                }
+            });
+        } catch (error) {
+            console.error(`Failed to watch lock directory: ${error}`);
+        }
     }
 
     private ensureLockDirectory(): void {
@@ -258,6 +274,8 @@ export class WindowInstanceManager {
     }
 
     dispose(): void {
+        this.dirWatcher?.close();
+        this._onDidChangeInstances.dispose();
         // Clean up files for the current instance
         this.removeInstance(this.currentInstanceId);
 
@@ -275,6 +293,7 @@ export class WindowInstanceManager {
     public resetWorkspaceThemeByPath(workspacePath: string): void {
         try {
             if (!workspacePath) return;
+
             const settingsPath = path.join(workspacePath, '.vscode', 'settings.json');
             if (!fs.existsSync(settingsPath)) return;
             let raw = fs.readFileSync(settingsPath, 'utf8');

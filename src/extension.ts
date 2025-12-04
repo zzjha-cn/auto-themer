@@ -11,6 +11,8 @@ let statusBarManager: StatusBarManager;
 let statusItem: vscode.StatusBarItem;
 let autoAssignmentEnabled: boolean = false;
 let windowsThreshold = 1;
+let cachedThemeMappings: Record<string, string> | undefined;
+let cachedStatusBarMappings: Record<string, string> | undefined;
 
 // "onStartupFinished" actives once when Extension Host finish.
 export function activate(context: vscode.ExtensionContext) {
@@ -27,6 +29,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider('autoThemer.view', provider)
     );
+
+    context.subscriptions.push(vscode.workspace.onDidChangeConfiguration(e => {
+        if (e.affectsConfiguration('autoThemer.themeMappingsText')) {
+            cachedThemeMappings = undefined;
+        }
+        if (e.affectsConfiguration('autoThemer.statusBarMappingsText')) {
+            cachedStatusBarMappings = undefined;
+        }
+    }));
 
     // Register commands
     context.subscriptions.push(
@@ -145,13 +156,13 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     // Listen for active editor changes
-    context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor(async () => {
-            if (autoAssignmentEnabled) {
-                await windowManager.onWindowActivated();
-            }
-        })
-    );
+    // context.subscriptions.push(
+    //     vscode.window.onDidChangeActiveTextEditor(async () => {
+    //         if (autoAssignmentEnabled) {
+    //             await windowManager.onWindowActivated();
+    //         }
+    //     })
+    // );
 
     // Listen for workspace folder changes
     context.subscriptions.push(
@@ -166,17 +177,31 @@ export function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // Periodic window state sync (hacky)
-    const syncInterval = setInterval(async () => {
-        if (autoAssignmentEnabled) {
+    // Event driven window state sync
+    let debounceTimer: NodeJS.Timeout | undefined;
+    const triggerSync = () => {
+        if (!autoAssignmentEnabled) return;
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
             await windowManager.syncWindowStates();
             await checkAndAssignTheme();
-        }
-    }, 3000);
+        }, 500);
+    };
 
-    context.subscriptions.push({
-        dispose: () => clearInterval(syncInterval)
-    });
+    context.subscriptions.push(
+        windowManager.onDidChangeInstances(() => {
+            triggerSync();
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeWindowState(async (e) => {
+            if (e.focused && autoAssignmentEnabled) {
+                await windowManager.onWindowActivated();
+                await checkAndAssignTheme();
+            }
+        })
+    );
 
     // Auto theme assignment
     async function performAutoThemeAssignment(): Promise<void> {
@@ -222,34 +247,42 @@ export function activate(context: vscode.ExtensionContext) {
     // Save/get workspace theme mapping (by workspace path)
     async function saveWorkspaceThemeMapping(workspacePath: string, theme: string): Promise<void> {
         const config = vscode.workspace.getConfiguration('autoThemer');
-        const text = config.get<string>('themeMappingsText', '');
-        const mappings = parseMappingsText(text);
-        mappings[workspacePath] = theme;
-        const newText = serializeMappingsToText(mappings);
+        if (!cachedThemeMappings) {
+            const text = config.get<string>('themeMappingsText', '');
+            cachedThemeMappings = parseMappingsText(text);
+        }
+        cachedThemeMappings[workspacePath] = theme;
+        const newText = serializeMappingsToText(cachedThemeMappings);
         await config.update('themeMappingsText', newText, vscode.ConfigurationTarget.Global);
     }
 
     async function getWorkspaceThemeMapping(workspacePath: string): Promise<string | undefined> {
-        const config = vscode.workspace.getConfiguration('autoThemer');
-        const text = config.get<string>('themeMappingsText', '');
-        const mappings = parseMappingsText(text);
-        return mappings[workspacePath];
+        if (!cachedThemeMappings) {
+            const config = vscode.workspace.getConfiguration('autoThemer');
+            const text = config.get<string>('themeMappingsText', '');
+            cachedThemeMappings = parseMappingsText(text);
+        }
+        return cachedThemeMappings[workspacePath];
     }
 
     async function saveWorkspaceStatusBarLabel(workspacePath: string, label: string): Promise<void> {
         const config = vscode.workspace.getConfiguration('autoThemer');
-        const text = config.get<string>('statusBarMappingsText', '');
-        const mappings = parseMappingsText(text);
-        mappings[workspacePath] = label;
-        const newText = serializeMappingsToText(mappings);
+        if (!cachedStatusBarMappings) {
+            const text = config.get<string>('statusBarMappingsText', '');
+            cachedStatusBarMappings = parseMappingsText(text);
+        }
+        cachedStatusBarMappings[workspacePath] = label;
+        const newText = serializeMappingsToText(cachedStatusBarMappings);
         await config.update('statusBarMappingsText', newText, vscode.ConfigurationTarget.Global);
     }
 
     async function getWorkspaceStatusBarLabel(workspacePath: string): Promise<string | undefined> {
-        const config = vscode.workspace.getConfiguration('autoThemer');
-        const text = config.get<string>('statusBarMappingsText', '');
-        const mappings = parseMappingsText(text);
-        return mappings[workspacePath];
+        if (!cachedStatusBarMappings) {
+            const config = vscode.workspace.getConfiguration('autoThemer');
+            const text = config.get<string>('statusBarMappingsText', '');
+            cachedStatusBarMappings = parseMappingsText(text);
+        }
+        return cachedStatusBarMappings[workspacePath];
     }
 
     function serializeMappingsToText(m: Record<string, string>): string {
