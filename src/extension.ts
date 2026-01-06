@@ -74,6 +74,7 @@ export function activate(context: vscode.ExtensionContext) {
 
             if (selected) {
                 await themeManager.switchTheme(selected.label);
+                windowManager.updateCurrentInstanceTheme(selected.label)
             }
         })
     );
@@ -89,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
             }
 
             const newTheme = await themeManager.assignUniqueTheme(currentInstanceId, instanceCount);
+            windowManager.updateCurrentInstanceTheme(newTheme)
             vscode.window.showInformationMessage(`Theme reassigned to: ${newTheme}`);
             provider.notifyConflictResolved();
         })
