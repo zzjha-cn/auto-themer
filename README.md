@@ -1,5 +1,9 @@
-<p align="right">
+<p align="left">
    <strong>English</strong> | <a href="./README.CN.md">简体中文</a>
+</p>
+
+<p align="left">
+   <a href="./docs/Q&A.md">Q&A</a>
 </p>
 
 # Auto Themer
@@ -30,6 +34,7 @@ Assign and apply theme-based or status-bar-based distinction per VS Code window/
 ### Sidebar Actions
 - Select Theme: choose the current window's theme
 - Random Theme: assign a random theme to the current window
+- Configure Builtin Theme: configure the list of built-in themes used for auto-switching (manual setting)
 - Reassign Theme: reassign a unique theme to the current window
 - Persist Theme: persist the current window's theme mapping
 - Show Mappings: view workspace ↔ theme mappings

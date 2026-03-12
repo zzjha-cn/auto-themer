@@ -2,7 +2,7 @@
   "name": "auto-themer",
   "displayName": "Auto Themer",
   "description": "Automatically assign different color themes to VSCode windows for easy distinction",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -93,7 +93,7 @@
         "autoThemer.builtinThemes": {
           "type": "array",
           "default": [],
-          "description": "Built-in themes to cycle through"
+          "description": "Built-in themes to cycle through (Configure Builtin Themes Button)"
         },
         "autoThemer.windowsThreshold": {
           "type": "number",

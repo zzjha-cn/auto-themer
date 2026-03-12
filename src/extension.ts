@@ -37,6 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (e.affectsConfiguration('autoThemer.statusBarMappingsText')) {
             cachedStatusBarMappings = undefined;
         }
+        if (e.affectsConfiguration('autoThemer.builtinThemes')) {
+            themeManager.loadBuiltinThemes();
+        }
     }));
 
     // Register commands
@@ -75,6 +78,52 @@ export function activate(context: vscode.ExtensionContext) {
             if (selected) {
                 await themeManager.switchTheme(selected.label);
                 windowManager.updateCurrentInstanceTheme(selected.label)
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('autoThemer.configureBuiltinThemes', async () => {
+            const allThemes = themeManager.getInstalledThemes();
+            const config = vscode.workspace.getConfiguration('autoThemer');
+            const currentBuiltin = config.get<string[]>('builtinThemes', []);
+
+            // If currentBuiltin is empty, all installed themes are "active" by default logic.
+            // But for configuration, if the user sees nothing selected, they might think nothing is enabled.
+            // Or if we select all, they can uncheck what they don't want.
+            // Let's assume if empty, we pre-select ALL to reflect the "use all" behavior,
+            // so the user can start excluding some.
+            const isDefaultAll = !currentBuiltin || currentBuiltin.length === 0;
+
+            const items = allThemes.map(theme => ({
+                label: theme,
+                picked: isDefaultAll || currentBuiltin.includes(theme)
+            }));
+
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select themes to use for auto-rotation (leave empty to use all)',
+                canPickMany: true
+            });
+
+            if (selected) {
+                // If user selected ALL, we can save as empty array to imply "all" (dynamic),
+                // OR we can save the explicit list.
+                // Saving explicit list is safer against future theme installs if the user WANTED "these specific themes".
+                // But if they want "all except X", they have to maintain the list.
+                // Let's just save what they selected.
+                // If they deselect everything, selected is empty array.
+                // If selected is empty array, our logic falls back to "all".
+                // So if user wants to select NONE... well, auto-themer needs at least one theme.
+                // If they select none, it falls back to all, which is fine.
+
+                const selectedThemes = selected.map(s => s.label);
+                await config.update('builtinThemes', selectedThemes, vscode.ConfigurationTarget.Global);
+
+                if (selectedThemes.length === 0) {
+                    vscode.window.showInformationMessage(`Configuration reset: Using ALL installed themes.`);
+                } else {
+                    vscode.window.showInformationMessage(`Updated builtin themes: ${selectedThemes.length} themes selected.`);
+                }
             }
         })
     );

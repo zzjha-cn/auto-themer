@@ -48,6 +48,9 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                 case 'selectTheme':
                     await vscode.commands.executeCommand('autoThemer.switchTheme');
                     break;
+                case 'configureThemes':
+                    await vscode.commands.executeCommand('autoThemer.configureBuiltinThemes');
+                    break;
                 case 'randomTheme':
                     const themes = await this.themeManager.getBuiltinThemes();
                     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
@@ -192,6 +195,7 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
                     <div class="button-group">
                         <button id="select-theme">Select Theme</button>
                         <button id="random-theme">Random Theme</button>
+                        <button id="configure-themes">Configure Builtin Themes</button>
                     </div>
 
                     <div class="divider"></div>
@@ -249,6 +253,10 @@ export class SimpleWebviewProvider implements vscode.WebviewViewProvider {
 
                     document.getElementById('random-theme').addEventListener('click', () => {
                         vscode.postMessage({ type: 'randomTheme' });
+                    });
+
+                    document.getElementById('configure-themes').addEventListener('click', () => {
+                        vscode.postMessage({ type: 'configureThemes' });
                     });
 
                     document.getElementById('reassign-theme').addEventListener('click', () => {

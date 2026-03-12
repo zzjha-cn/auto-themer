@@ -8,42 +8,50 @@ export class ThemeManager {
         this.loadBuiltinThemes();
     }
 
-    private loadBuiltinThemes(): void {
-        this.builtinThemes = [
-            "Abyss",
-            "Default Light+",
-            "Default Dark+",
-            "Kimbie Dark",
-            "Monokai",
-            "Monokai Dimmed",
-            "Quiet Light",
-            "Red",
-            "Solarized Dark",
-            "Solarized Light",
-            "Tomorrow Night Blue",
-        ];
+    public loadBuiltinThemes(): void {
+        const config = vscode.workspace.getConfiguration('autoThemer');
+        const configuredThemes = config.get<string[]>('builtinThemes');
 
-        // TODO: use config builtinThemes
+        if (configuredThemes && configuredThemes.length > 0) {
+            this.builtinThemes = configuredThemes;
+        } else {
+            // this.builtinThemes = [
+            //     "Abyss",
+            //     "Default Light+",
+            //     "Default Dark+",
+            //     "Kimbie Dark",
+            //     "Monokai",
+            //     "Monokai Dimmed",
+            //     "Quiet Light",
+            //     "Red",
+            //     "Solarized Dark",
+            //     "Solarized Light",
+            //     "Tomorrow Night Blue",
+            // ];
+            // Default to all installed themes if no config is provided
+            this.builtinThemes = this.getInstalledThemes();
+        }
     }
 
-    async getAvailableThemes(): Promise<string[]> {
+    public getInstalledThemes(): string[] {
         const themes: string[] = [];
-
-        // Get all installed extensions
         const extensions = vscode.extensions.all;
 
         for (const ext of extensions) {
             const contributes = ext.packageJSON?.contributes;
             if (contributes?.themes) {
                 for (const theme of contributes.themes) {
-                    if (theme.label || theme.id) {
-                        themes.push(theme.label || theme.id);
+                    if (theme.id || theme.label) {
+                        themes.push(theme.id || theme.label);
                     }
                 }
             }
         }
+        return [...new Set(themes)].sort();
+    }
 
-        const uniqueThemes = [...new Set(themes)].sort();
+    async getAvailableThemes(): Promise<string[]> {
+        const uniqueThemes = this.getInstalledThemes();
         const prioritizedThemes = this.builtinThemes.filter(t => uniqueThemes.includes(t));
         const otherThemes = uniqueThemes.filter(t => !this.builtinThemes.includes(t));
 

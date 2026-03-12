@@ -26,6 +26,7 @@
 ### 插件面板功能说明
 - select theme: 选择当前窗口的主题
 - random theme: 随机为当前窗口分配主题
+- configure builtin theme: 配置用于自动切换窗口的主题（手动设置）
 - reassign theme: 重新分配当前窗口的主题
 - persist theme: 持久化当前窗口的主题映射
 - show mappings: 查看工作区与主题的映射关系
