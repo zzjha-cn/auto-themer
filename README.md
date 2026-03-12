@@ -3,7 +3,7 @@
 </p>
 
 <p align="left">
-   <a href="./docs/Q&A.md">Q&A</a>
+   <a href="./docs/Q&A.md">Q&A</a> | <a href="./docs/changelog.md">CHANGELOG</a>
 </p>
 
 # Auto Themer
